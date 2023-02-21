@@ -63,12 +63,3 @@ inputType.addEventListener('change', function() {
 })
 
 //project architecture
-
-
-function sayHi() {
-
-  
-}
-var count = sayHi()
-
-console.log(count);
