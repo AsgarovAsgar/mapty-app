@@ -74,7 +74,13 @@ class App {
   #workouts = []
 
   constructor() {
+    // get user's position
     this._getPosition()
+
+    // get data from local storage
+    this._getLocaleStorage()
+
+    // attach event handlers
     form.addEventListener('submit', this._newWorkout.bind(this))
     inputType.addEventListener('change', this._toggleElevationField)
     containerWorkouts.addEventListener('click', this._moveToPopup.bind(this))
@@ -92,9 +98,7 @@ class App {
 
   _loadMap(position) {
     const { latitude, longitude } = position.coords
-    console.log(latitude, longitude );
     const coords = [ latitude, longitude ]
-    console.log(this);
     this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
 
     L.tileLayer('http://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', { //https://tile.openstreetmap.org/{z}/{x}/{y}.png
@@ -103,6 +107,11 @@ class App {
 
     // handling clicks on map
     this.#map.on('click', this._showForm.bind(this))
+
+    // render workout marker here BECAUSE map is not loaded when we want to render the marker in _getLocaleStorage function
+    this.#workouts.forEach(work => {
+      this._renderWorkoutMarker(work) 
+    })
   }
 
   _showForm(mapE) {
@@ -139,8 +148,7 @@ class App {
     const { lat, lng } = this.#mapEvent.latlng
     let workout
 
-    // check if data is valid
-
+    // check if data is valid for both classes
     // if workout is running, create running object
     if(type === 'running') {
       const cadence = +inputCadence.value
@@ -161,10 +169,7 @@ class App {
 
     // add new object to workout array
     this.#workouts.push(workout)
-    console.log(workout);
  
-    
-
     // render workout on map as a marker
     this._renderWorkoutMarker(workout)
 
@@ -173,6 +178,9 @@ class App {
 
     // hide form + clear input fields
     this._hideForm()
+
+    // set local storage to all workouts
+    this._setLocalStorage()
   }
 
   _renderWorkoutMarker(workout) {
@@ -240,21 +248,39 @@ class App {
   }
   _moveToPopup(e) {
     const workoutEl = e.target.closest('.workout')
-    console.log('workoutEl',workoutEl);
 
     if(!workoutEl) return 
     const workout = this.#workouts.find(work => work.id === workoutEl.dataset.id)
-    console.log(workout);
 
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
-      pan: {
-        duration: 1
-      }
+      pan: { duration: 1 }
     })
 
     // using public interfaces
-    workout.click()
+    // workout.click()
+  }
+
+  _setLocalStorage() {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts))
+  }
+
+  _getLocaleStorage() {
+    // BUT when we convert object to string, and convert it back to object we LOST prototype chain!
+    const data = JSON.parse(localStorage.getItem('workouts'))
+
+    if(!data) return
+    this.#workouts = data
+
+    this.#workouts.forEach(work => {
+      this._renderWorkout(work)
+      // this._renderWorkoutMarker(work) 
+    })
+  }
+
+  reset() {
+    localStorage.removeItem('workouts')
+    location.reload()
   }
 
 }
